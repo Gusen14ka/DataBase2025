@@ -1,0 +1,6 @@
+@STO.Web_HostAddress = http://localhost:5043
+
+GET {{STO.Web_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

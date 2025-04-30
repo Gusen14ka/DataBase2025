@@ -1,56 +1,227 @@
 using Microsoft.EntityFrameworkCore;
-using STO.Core.Models;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using STO.Infrastructure.Dto;
 
 namespace STO.Infrastructure.Data
 {
-    public class AppDbContext : DbContext
+    public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
-
-        public DbSet<Car> Cars { get; set; }
-        public DbSet<Order> Orders { get; set; }
-        public DbSet<Customer> Customers { get; set; }
-        public DbSet<Model> Models { get; set; }
-        public DbSet<OrderPart> OrderParts { get; set; }
-        public DbSet<OrderService> OrderServices { get; set; }
-        public DbSet<Part> Parts { get; set; }
-        public DbSet<Service> Services { get; set; }
-        public DbSet<ServicePartAssociation> ServicePartAssociation { get; set; }
-        public DbSet<PartModelCompatibility> PartModelCompatibility { get; set; }
+        public DbSet<CarDto> Cars { get; set; }
+        public DbSet<OrderDto> Orders { get; set; }
+        public DbSet<CustomerDto> Customers { get; set; }
+        public DbSet<ModelDto> Models { get; set; }
+        public DbSet<OrderedPartDto> OrderedParts { get; set; }
+        public DbSet<OrderedServiceDto> OrderedServices { get; set; }
+        public DbSet<PartDto> Parts { get; set; }
+        public DbSet<ServiceDto> Services { get; set; }
+        public DbSet<ServicePartAssociationDto> ServicePartAssociations { get; set; }
+        public DbSet<PartModelCompatibilityDto> PartModelCompatibilities { get; set; }
+        public DbSet<TimetableDto> Timetables { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Настройка составного ключа для ServicePartAssociation
-            modelBuilder.Entity<ServicePartAssociation>()
-                .HasKey(stp => new { stp.ServiceId, stp.PartId }); // Составной ключ
+            // Конвертер для TimeSpan?
+            var timeSpanConverter = new ValueConverter<TimeSpan?, string>(
+                v => v.HasValue ? v.Value.ToString() : null,
+                v => string.IsNullOrEmpty(v) ? (TimeSpan?)null : TimeSpan.Parse(v)
+            );
 
-            // Настройка связи между Service и ServicePartAssociation
-            modelBuilder.Entity<ServicePartAssociation>()
-                .HasOne(stp => stp.Service) // ServicePartAssociation связана с одним Service
-                .WithMany(s => s.ServicePartAssociation) // Service может быть связан с многими ServicePartAssociation
-                .HasForeignKey(stp => stp.ServiceId); // Внешний ключ в ServicePartAssociation
+            
 
-            // Настройка связи между Part и ServicePartAssociation
-            modelBuilder.Entity<ServicePartAssociation>()
-                .HasOne(stp => stp.Part) // ServicePartAssociation связана с одним Part
-                .WithMany(p => p.ServicePartAssociation) // Part может быть связан с многими ServicePartAssociation
-                .HasForeignKey(stp => stp.PartId); // Внешний ключ в ServicePartAssociation
+            // Конфигурация CarDto
+            modelBuilder.Entity<CarDto>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ModelId).IsRequired();
+                entity.Property(e => e.Year).IsRequired();
+                entity.Property(e => e.Vin).IsRequired();
+                entity.Property(e => e.CustomerId).IsRequired();
+                entity.Property(e => e.StartService).IsRequired();
+                entity.Property(e => e.EndService).IsRequired(false);
+                entity.Property(e => e.IsDeleted).HasDefaultValue(false);
 
-            // Настройка составного ключа для PartModelCompatibility
-            modelBuilder.Entity<PartModelCompatibility>()
-                .HasKey(stp => new { stp.PartId, stp.ModelId }); // Составной ключ
+                entity.HasOne<ModelDto>()
+                    .WithMany()
+                    .HasForeignKey(e => e.ModelId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne<CustomerDto>()
+                    .WithMany()
+                    .HasForeignKey(e => e.CustomerId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
 
-            // Настройка связи между Part и PartModelCompatibility
-            modelBuilder.Entity<PartModelCompatibility>()
-                .HasOne(stp => stp.Part) // PartModelCompatibility связана с одним Part
-                .WithMany(s => s.PartModelCompatibility) // Part может быть связан с многими PartModelCompatibility
-                .HasForeignKey(stp => stp.PartId); // Внешний ключ в PartModelCompatibility
+            // Конфигурация CustomerDto
+            modelBuilder.Entity<CustomerDto>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.FirstName)
+                    .IsRequired()
+                    .HasMaxLength(100);
+                entity.Property(e => e.LastName)
+                    .IsRequired()
+                    .HasMaxLength(100);
+                entity.Property(e => e.LastName)
+                    .IsRequired()
+                    .HasMaxLength(100);
+                entity.Property(e => e.Email)
+                    .IsRequired()
+                    .HasMaxLength(100);
+                entity.Property(e => e.PhoneNumber)
+                    .IsRequired()
+                    .HasMaxLength(100);
+            });
 
-            // Настройка связи между Model и PartModelCompatibility
-            modelBuilder.Entity<PartModelCompatibility>()
-                .HasOne(stp => stp.Model) // PartModelCompatibility связана с одним Model
-                .WithMany(p => p.PartModelCompatibility) // Model может быть связан с многими PartModelCompatibility
-                .HasForeignKey(stp => stp.ModelId); // Внешний ключ в PartModelCompatibility
+            // Конфигурация ModelDto
+            modelBuilder.Entity<ModelDto>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name)
+                    .IsRequired()
+                    .HasMaxLength(100);
+                entity.Property(e => e.Brand)
+                    .IsRequired()
+                    .HasMaxLength(100);
+            });
+
+            // Конфигурация OrderDto
+            modelBuilder.Entity<OrderDto>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.CustomerId).IsRequired();
+                entity.Property(e => e.CarId).IsRequired();
+                entity.Property(e => e.CreatedTime).IsRequired();
+                entity.Property(e => e.Speedometer).IsRequired();
+                entity.Property(e => e.IsFinished).HasDefaultValue(false);
+                entity.Property(e => e.FinishedTime).IsRequired(false);
+
+                entity.HasOne<CustomerDto>()
+                    .WithMany()
+                    .HasForeignKey(e => e.CustomerId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne<CarDto>()
+                    .WithMany()
+                    .HasForeignKey(e => e.CarId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Конфигурация OrderPartDto
+            modelBuilder.Entity<OrderedPartDto>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.OrderId).IsRequired();
+                entity.Property(e => e.PartId).IsRequired();
+                entity.Property(e => e.Quantity).IsRequired();
+
+                entity.HasOne<OrderDto>()
+                    .WithMany()
+                    .HasForeignKey(e => e.OrderId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne<PartDto>()
+                    .WithMany()
+                    .HasForeignKey(e => e.PartId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Конфигурация OrderServiceDto
+            modelBuilder.Entity<OrderedServiceDto>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.OrderId).IsRequired();
+                entity.Property(e => e.ServiceId).IsRequired();
+                entity.Property(e => e.Quantity).IsRequired();
+
+                entity.HasOne<OrderDto>()
+                    .WithMany()
+                    .HasForeignKey(e => e.OrderId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne<ServiceDto>()
+                    .WithMany()
+                    .HasForeignKey(e => e.ServiceId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Конфигурация PartDto
+            modelBuilder.Entity<PartDto>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name)
+                    .IsRequired()
+                    .HasMaxLength(100);
+                entity.Property(e => e.Price).IsRequired();
+                entity.Property(e => e.Quantity).IsRequired();
+                entity.Property(e => e.IsNew).IsRequired();
+            });
+
+            // Конфигурация ServiceDto
+            modelBuilder.Entity<ServiceDto>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name)
+                    .IsRequired()
+                    .HasMaxLength(100)
+                    .UseCollation("NOCASE");
+                entity.Property(e => e.Price).IsRequired();
+                entity.Property(e => e.NextVisit).HasConversion(timeSpanConverter).IsRequired(false);
+            });
+
+            // Конфигурация связывающей таблицы PartModelCompatibilityDto
+            modelBuilder.Entity<PartModelCompatibilityDto>(entity =>
+            {
+                // Составной ключ: комбинация ServiceId и PartId
+                entity.HasKey(e => new { e.PartId, e.ModelId });
+
+                // Настройка внешних ключей
+                // Здесь нет навигационных свойств, поэтому используем WithMany() без параметров.
+                entity.HasOne<PartDto>()
+                    .WithMany()
+                    .HasForeignKey(e => e.PartId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne<ModelDto>()
+                    .WithMany()
+                    .HasForeignKey(e => e.ModelId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Конфигурация связывающей таблицы ServicePartAssociationDto
+            modelBuilder.Entity<ServicePartAssociationDto>(entity =>
+            {
+                // Составной ключ: комбинация ServiceId и PartId
+                entity.HasKey(e => new { e.ServiceId, e.PartId });
+
+                // Настройка внешних ключей
+                // Здесь нет навигационных свойств, поэтому используем WithMany() без параметров.
+                entity.HasOne<ServiceDto>()
+                    .WithMany()
+                    .HasForeignKey(e => e.ServiceId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne<PartDto>()
+                    .WithMany()
+                    .HasForeignKey(e => e.PartId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Конфигурация связывающей таблицы TimetableDto
+            modelBuilder.Entity<TimetableDto>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.NextVisit).IsRequired();
+
+                // Настройка внешних ключей
+                // Здесь нет навигационных свойств, поэтому используем WithMany() без параметров.
+                entity.HasOne<CarDto>()
+                    .WithMany()
+                    .HasForeignKey(e => e.CarId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne<ServiceDto>()
+                    .WithMany()
+                    .HasForeignKey(e => e.ServiceId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            base.OnModelCreating(modelBuilder);
         }
     }
 }

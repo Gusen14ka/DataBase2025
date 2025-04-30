@@ -1,0 +1,154 @@
+﻿@page "/InstrumentWizard/SendReminders"
+@model STO.Web.Pages.InstrumentWizard.SendRemindersModel
+@using System.Text.Json
+
+@{
+    ViewData["Title"] = "Отправка напоминаний";
+}
+
+<h2>Отправка напоминаний</h2>
+
+<form id="reminderForm" method="post" class="row g-3 mb-4" novalidate>
+    <div class="col-auto">
+        <label asp-for="DaysBefore" class="form-label">За сколько дней напоминать</label>
+        <input asp-for="DaysBefore"
+               class="form-control"
+               type="number"
+               min="1"
+               required />
+        <span asp-validation-for="DaysBefore" class="text-danger"></span>
+    </div>
+    <div class="col-auto align-self-end">
+        <button type="submit"
+                id="submitButton"
+                class="btn btn-primary"
+                disabled>
+            Послать уведомления
+        </button>
+        <a asp-page="/Index" class="btn btn-secondary">На главную</a>
+    </div>
+</form>
+
+
+@if (Model.Reminders != null && !Model.Reminders.Any())
+{
+    <div class="alert alert-info">
+        Уведомлений в заданный период не найдено
+    </div>
+}
+
+@if (Model.Sent)
+{
+    <h4>Следующим пользователям отправлено уведомление:</h4>
+
+    <div class="mb-3">
+        <button id="downloadAll" class="btn btn-primary" disabled>
+            Скачать все JSON
+        </button>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered text-nowrap">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>ФИО</th>
+                    <th>Телефон</th>
+                    <th>Email</th>
+                    <th>Марка</th>
+                    <th>Модель</th>
+                    <th>Услуга</th>
+                    <th>След. визит</th>
+                    <th>JSON-письмо</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (int i = 0; i < Model.Reminders!.Count; i++)
+                {
+                    var r = Model.Reminders[i];
+                    <tr>
+                        <td>@(i + 1)</td>
+                        <td>@($"{r.CustomerFirstName} {r.CustomerLastName}")</td>
+                        <td>@r.CustomerPhoneNumber</td>
+                        <td>@r.CustomerEmail</td>
+                        <td>@r.CarBrand</td>
+                        <td>@r.CarModel</td>
+                        <td>@r.ServiceName</td>
+                        <td>@r.NextVisit.ToString("dd.MM.yyyy")</td>
+                        <td>
+                            @{
+                                var emailBody = new
+                                {
+                                    To = new { Name = $"{r.CustomerFirstName} {r.CustomerLastName}", Email = r.CustomerEmail },
+                                    Subject = "Напоминание о техобслуживании",
+                                    Body = $"Здравствуйте, {r.CustomerFirstName} {r.CustomerLastName}! " +
+                                $"Рекомендуем услугу «{r.ServiceName}» для вашего {r.CarBrand} {r.CarModel}. " +
+                                $"Следующий визит: {r.NextVisit:dd.MM.yyyy}. Спасибо, что вы с нами."
+                                };
+                                string json = JsonSerializer.Serialize(emailBody, new JsonSerializerOptions 
+                                    { 
+                                        WriteIndented = true,
+                                        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping 
+                                    });
+                                string base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(json));
+                                string href = $"data:application/json;base64,{base64}";
+                                string fileName = $"reminder_{i + 1}.json";
+                            }
+                            <a class="btn btn-sm btn-outline-secondary" href="@href" download="@fileName">
+                                Скачать
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        (function(){
+            const form = document.getElementById('reminderForm');
+            const submitBtn = document.getElementById('submitButton');
+            const downloadAllBtn = document.getElementById('downloadAll');
+
+            // при вводе пересчитываем валидность формы
+            form.addEventListener('input', () => {
+                submitBtn.disabled = !form.checkValidity();
+            });
+
+            // если есть напоминания — активируем кнопку "Скачать все"
+            @if (Model.Sent)
+            {
+                <text>
+                    downloadAllBtn.disabled = false;
+                    downloadAllBtn.addEventListener('click', () => {
+                        const reminders = @Html.Raw(JsonSerializer.Serialize(Model.Reminders));
+                        const emails = reminders.map(r => ({
+                            To: {
+                                Name: `${r.CustomerFirstName} ${r.CustomerLastName}`,
+                                Email: r.CustomerEmail
+                            },
+                            Subject: "Напоминание о техобслуживании",
+                            Body: `Здравствуйте, ${r.CustomerFirstName} ${r.CustomerLastName}! Рекомендуем услугу «${r.ServiceName}» для вашего ${r.CarBrand} ${r.CarModel}. Следующий визит: ${new Date(r.NextVisit).toLocaleDateString("ru-RU")}. Спасибо, что вы с нами.`
+                        }));
+                
+                        const json = JSON.stringify(emails, null, 2);
+                        const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+                        const url = URL.createObjectURL(blob);
+
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'email_reminders.json';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    });
+                </text>
+            }
+        })();
+    </script>
+}

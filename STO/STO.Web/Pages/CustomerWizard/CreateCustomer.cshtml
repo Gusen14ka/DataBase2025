@@ -1,0 +1,86 @@
+﻿@page "/CustomerWizard/CreateCustomer"
+@model STO.Web.Pages.CustomerWizard.CreateCustomerModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Новый клиент";
+}
+
+<div class="container">
+    <h2>Новый клиент</h2>
+
+    <form method="post" class="row g-3">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <!-- Поля формы -->
+        <div class="col-md-6">
+            <label asp-for="Input.FirstName" class="form-label">Имя</label>
+            <input asp-for="Input.FirstName" class="form-control" />
+            <span asp-validation-for="Input.FirstName" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-6">
+            <label asp-for="Input.LastName" class="form-label">Фамилия</label>
+            <input asp-for="Input.LastName" class="form-control" />
+            <span asp-validation-for="Input.LastName" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-6">
+            <label asp-for="Input.Email" class="form-label">Email</label>
+            <input asp-for="Input.Email" class="form-control" />
+            <span asp-validation-for="Input.Email" class="text-danger"></span>
+        </div>
+
+        <div class="col-md-6">
+            <label asp-for="Input.PhoneNumber" class="form-label">Телефон</label>
+            <input asp-for="Input.PhoneNumber" class="form-control" />
+            <span asp-validation-for="Input.PhoneNumber" class="text-danger"></span>
+        </div>
+
+        <div class="col-12">
+            <button type="submit" class="btn btn-primary">Создать клиента</button>
+            <a class="btn btn-secondary ms-2" href="/">На главную</a>
+        </div>
+    </form>
+</div>
+
+@if (Model.ShowSuccess)
+{
+    
+    <div class="modal fade" id="successModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Клиент создан</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    Клиент успешно добавлен, что теперь?
+                </div>
+                <div class="modal-footer">
+                    <a class="btn btn-primary"
+                       href="/CarWizard/CreateCar?customerId=@Model.CustomerId">
+                        Добавить машину
+                    </a>
+                    <a class="btn btn-primary"
+                       href="/">
+                        На главную
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // Полная аналогия с примером SearchParts
+        document.addEventListener('DOMContentLoaded', function() {
+        @if (Model.ShowSuccess)
+        {
+            <text>
+                    new bootstrap.Modal(document.getElementById('successModal')).show();
+            </text>
+        }
+        });
+    </script>
+}

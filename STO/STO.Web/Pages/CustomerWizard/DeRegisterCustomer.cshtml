@@ -1,0 +1,84 @@
+﻿@page "/CustomerWizard/DeRegisterCustomer"
+@model STO.Web.Pages.CustomerWizard.DeRegisterCustomerModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+@{
+    ViewData["Title"] = "Снятие клиента с учёта";
+}
+
+<div class="container">
+    <div class="mb-4">
+        <a asp-page="/CustomerWizard/SearchCustomer" class="btn btn-secondary">
+            ← Вернуться к выбору клиента
+        </a>
+    </div>
+
+    <h2>Информация по клиенту</h2>
+    <dl class="row">
+        <dt class="col-sm-3">Имя</dt>
+        <dd class="col-sm-9">@Model.CustomerBrief?.FirstName</dd>
+
+        <dt class="col-sm-3">Фамилия</dt>
+        <dd class="col-sm-9">@Model.CustomerBrief?.LastName</dd>
+
+        <dt class="col-sm-3">Телефон</dt>
+        <dd class="col-sm-9">@Model.CustomerBrief?.PhoneNumber</dd>
+
+        <dt class="col-sm-3">Email</dt>
+        <dd class="col-sm-9">@Model.CustomerBrief?.Email</dd>
+    </dl>
+
+    <div class="alert alert-warning">
+        Вы уверены, что хотите снять клиента с учёта и удалить все его машины?
+    </div>
+
+    <div class="mb-3">
+        <button id="btnDelete" class="btn btn-danger">Снять с учёта</button>
+        <a asp-page="/Index" class="btn btn-secondary">На главную</a>
+    </div>
+</div>
+
+<!-- Модалка результата -->
+<div class="modal fade" id="doneModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content p-3">
+            <div class="modal-header">
+                <h5 class="modal-title">Готово</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Клиент и все его автомобили успешно сняты с учёта.
+            </div>
+            <div class="modal-footer">
+                <a asp-page="/CustomerWizard/SearchCustomer" class="btn btn-secondary">
+                    Назад
+                </a>
+                <a asp-page="/" class="btn btn-primary">На главную</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/jquery/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function(){
+          const btn = document.getElementById('btnDelete');
+          const doneModalEl = document.getElementById('doneModal');
+
+          btn.addEventListener('click', async () => {
+            // AJAX POST на handler=Delete
+            const resp = await fetch(`?handler=Delete`, {
+              method: 'POST'
+            });
+            if (resp.ok) {
+              new bootstrap.Modal(doneModalEl).show();
+            } else {
+              alert('Не удалось снять клиента с учёта.');
+            }
+          });
+        });
+    </script>
+}

@@ -17,7 +17,7 @@ namespace STO.Infrastructure.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.2");
 
-            modelBuilder.Entity("STO.Core.Models.Car", b =>
+            modelBuilder.Entity("STO.Infrastructure.Dto.CarDto", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -26,11 +26,23 @@ namespace STO.Infrastructure.Migrations
                     b.Property<int>("CustomerId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("EndService")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("INTEGER");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
 
                     b.Property<int>("ModelId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("StartService")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Vin")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Year")
                         .HasColumnType("INTEGER");
@@ -44,7 +56,7 @@ namespace STO.Infrastructure.Migrations
                     b.ToTable("Cars");
                 });
 
-            modelBuilder.Entity("STO.Core.Models.Customer", b =>
+            modelBuilder.Entity("STO.Infrastructure.Dto.CustomerDto", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -52,10 +64,12 @@ namespace STO.Infrastructure.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsDeleted")
@@ -63,10 +77,12 @@ namespace STO.Infrastructure.Migrations
 
                     b.Property<string>("LastName")
                         .IsRequired()
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
@@ -74,7 +90,7 @@ namespace STO.Infrastructure.Migrations
                     b.ToTable("Customers");
                 });
 
-            modelBuilder.Entity("STO.Core.Models.Model", b =>
+            modelBuilder.Entity("STO.Infrastructure.Dto.ModelDto", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -82,10 +98,12 @@ namespace STO.Infrastructure.Migrations
 
                     b.Property<string>("Brand")
                         .IsRequired()
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
@@ -93,7 +111,7 @@ namespace STO.Infrastructure.Migrations
                     b.ToTable("Models");
                 });
 
-            modelBuilder.Entity("STO.Core.Models.Order", b =>
+            modelBuilder.Entity("STO.Infrastructure.Dto.OrderDto", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -108,8 +126,13 @@ namespace STO.Infrastructure.Migrations
                     b.Property<int>("CustomerId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("FinishedTime")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("IsFinished")
-                        .HasColumnType("INTEGER");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
 
                     b.Property<int>("Speedometer")
                         .HasColumnType("INTEGER");
@@ -123,7 +146,7 @@ namespace STO.Infrastructure.Migrations
                     b.ToTable("Orders");
                 });
 
-            modelBuilder.Entity("STO.Core.Models.OrderPart", b =>
+            modelBuilder.Entity("STO.Infrastructure.Dto.OrderedPartDto", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -144,10 +167,10 @@ namespace STO.Infrastructure.Migrations
 
                     b.HasIndex("PartId");
 
-                    b.ToTable("OrderParts");
+                    b.ToTable("OrderedParts");
                 });
 
-            modelBuilder.Entity("STO.Core.Models.OrderService", b =>
+            modelBuilder.Entity("STO.Infrastructure.Dto.OrderedServiceDto", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -168,10 +191,10 @@ namespace STO.Infrastructure.Migrations
 
                     b.HasIndex("ServiceId");
 
-                    b.ToTable("OrderServices");
+                    b.ToTable("OrderedServices");
                 });
 
-            modelBuilder.Entity("STO.Core.Models.Part", b =>
+            modelBuilder.Entity("STO.Infrastructure.Dto.PartDto", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -182,10 +205,11 @@ namespace STO.Infrastructure.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("Price")
-                        .HasColumnType("INTEGER");
+                    b.Property<decimal>("Price")
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("INTEGER");
@@ -195,7 +219,7 @@ namespace STO.Infrastructure.Migrations
                     b.ToTable("Parts");
                 });
 
-            modelBuilder.Entity("STO.Core.Models.PartModelCompatibility", b =>
+            modelBuilder.Entity("STO.Infrastructure.Dto.PartModelCompatibilityDto", b =>
                 {
                     b.Property<int>("PartId")
                         .HasColumnType("INTEGER");
@@ -203,17 +227,14 @@ namespace STO.Infrastructure.Migrations
                     b.Property<int>("ModelId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("Quantity")
-                        .HasColumnType("INTEGER");
-
                     b.HasKey("PartId", "ModelId");
 
                     b.HasIndex("ModelId");
 
-                    b.ToTable("PartModelCompatibility");
+                    b.ToTable("PartModelCompatibilities");
                 });
 
-            modelBuilder.Entity("STO.Core.Models.Service", b =>
+            modelBuilder.Entity("STO.Infrastructure.Dto.ServiceDto", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -221,20 +242,22 @@ namespace STO.Infrastructure.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .UseCollation("NOCASE");
+
+                    b.Property<string>("NextVisit")
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("NextVisit")
+                    b.Property<decimal>("Price")
                         .HasColumnType("TEXT");
-
-                    b.Property<int>("Price")
-                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
                     b.ToTable("Services");
                 });
 
-            modelBuilder.Entity("STO.Core.Models.ServicePartAssociation", b =>
+            modelBuilder.Entity("STO.Infrastructure.Dto.ServicePartAssociationDto", b =>
                 {
                     b.Property<int>("ServiceId")
                         .HasColumnType("INTEGER");
@@ -242,145 +265,140 @@ namespace STO.Infrastructure.Migrations
                     b.Property<int>("PartId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("Quantity")
-                        .HasColumnType("INTEGER");
-
                     b.HasKey("ServiceId", "PartId");
 
                     b.HasIndex("PartId");
 
-                    b.ToTable("ServicePartAssociation");
+                    b.ToTable("ServicePartAssociations");
                 });
 
-            modelBuilder.Entity("STO.Core.Models.Car", b =>
+            modelBuilder.Entity("STO.Infrastructure.Dto.TimetableDto", b =>
                 {
-                    b.HasOne("STO.Core.Models.Customer", "Customer")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CarId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("NextVisit")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ServiceId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CarId");
+
+                    b.HasIndex("ServiceId");
+
+                    b.ToTable("Timetables");
+                });
+
+            modelBuilder.Entity("STO.Infrastructure.Dto.CarDto", b =>
+                {
+                    b.HasOne("STO.Infrastructure.Dto.CustomerDto", null)
                         .WithMany()
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("STO.Core.Models.Model", "Model")
+                    b.HasOne("STO.Infrastructure.Dto.ModelDto", null)
                         .WithMany()
                         .HasForeignKey("ModelId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Customer");
-
-                    b.Navigation("Model");
                 });
 
-            modelBuilder.Entity("STO.Core.Models.Order", b =>
+            modelBuilder.Entity("STO.Infrastructure.Dto.OrderDto", b =>
                 {
-                    b.HasOne("STO.Core.Models.Car", "Car")
+                    b.HasOne("STO.Infrastructure.Dto.CarDto", null)
                         .WithMany()
                         .HasForeignKey("CarId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("STO.Core.Models.Customer", "Customer")
+                    b.HasOne("STO.Infrastructure.Dto.CustomerDto", null)
                         .WithMany()
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Car");
-
-                    b.Navigation("Customer");
                 });
 
-            modelBuilder.Entity("STO.Core.Models.OrderPart", b =>
+            modelBuilder.Entity("STO.Infrastructure.Dto.OrderedPartDto", b =>
                 {
-                    b.HasOne("STO.Core.Models.Order", "Order")
+                    b.HasOne("STO.Infrastructure.Dto.OrderDto", null)
                         .WithMany()
                         .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("STO.Core.Models.Part", "Part")
+                    b.HasOne("STO.Infrastructure.Dto.PartDto", null)
                         .WithMany()
                         .HasForeignKey("PartId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Order");
-
-                    b.Navigation("Part");
                 });
 
-            modelBuilder.Entity("STO.Core.Models.OrderService", b =>
+            modelBuilder.Entity("STO.Infrastructure.Dto.OrderedServiceDto", b =>
                 {
-                    b.HasOne("STO.Core.Models.Order", "Order")
+                    b.HasOne("STO.Infrastructure.Dto.OrderDto", null)
                         .WithMany()
                         .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("STO.Core.Models.Service", "Service")
+                    b.HasOne("STO.Infrastructure.Dto.ServiceDto", null)
                         .WithMany()
                         .HasForeignKey("ServiceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Order");
-
-                    b.Navigation("Service");
                 });
 
-            modelBuilder.Entity("STO.Core.Models.PartModelCompatibility", b =>
+            modelBuilder.Entity("STO.Infrastructure.Dto.PartModelCompatibilityDto", b =>
                 {
-                    b.HasOne("STO.Core.Models.Model", "Model")
-                        .WithMany("PartModelCompatibility")
+                    b.HasOne("STO.Infrastructure.Dto.ModelDto", null)
+                        .WithMany()
                         .HasForeignKey("ModelId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("STO.Core.Models.Part", "Part")
-                        .WithMany("PartModelCompatibility")
+                    b.HasOne("STO.Infrastructure.Dto.PartDto", null)
+                        .WithMany()
                         .HasForeignKey("PartId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Model");
-
-                    b.Navigation("Part");
                 });
 
-            modelBuilder.Entity("STO.Core.Models.ServicePartAssociation", b =>
+            modelBuilder.Entity("STO.Infrastructure.Dto.ServicePartAssociationDto", b =>
                 {
-                    b.HasOne("STO.Core.Models.Part", "Part")
-                        .WithMany("ServicePartAssociation")
+                    b.HasOne("STO.Infrastructure.Dto.PartDto", null)
+                        .WithMany()
                         .HasForeignKey("PartId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("STO.Core.Models.Service", "Service")
-                        .WithMany("ServicePartAssociation")
+                    b.HasOne("STO.Infrastructure.Dto.ServiceDto", null)
+                        .WithMany()
                         .HasForeignKey("ServiceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Part");
-
-                    b.Navigation("Service");
                 });
 
-            modelBuilder.Entity("STO.Core.Models.Model", b =>
+            modelBuilder.Entity("STO.Infrastructure.Dto.TimetableDto", b =>
                 {
-                    b.Navigation("PartModelCompatibility");
-                });
+                    b.HasOne("STO.Infrastructure.Dto.CarDto", null)
+                        .WithMany()
+                        .HasForeignKey("CarId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-            modelBuilder.Entity("STO.Core.Models.Part", b =>
-                {
-                    b.Navigation("PartModelCompatibility");
-
-                    b.Navigation("ServicePartAssociation");
-                });
-
-            modelBuilder.Entity("STO.Core.Models.Service", b =>
-                {
-                    b.Navigation("ServicePartAssociation");
+                    b.HasOne("STO.Infrastructure.Dto.ServiceDto", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

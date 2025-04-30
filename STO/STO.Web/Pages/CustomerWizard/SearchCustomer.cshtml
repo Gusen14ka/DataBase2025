@@ -1,0 +1,105 @@
+﻿@page "/CustomerWizard/SearchCustomer"
+@model STO.Web.Pages.CustomerWizard.SearchCustomerModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+@{
+    ViewData["Title"] = "Выбор клиента";
+}
+
+<h2>Найдите клиента по телефону</h2>
+
+<div class="mb-3">
+    <input id="phoneInput" type="text" class="form-control" placeholder="Введите номер телефона" />
+</div>
+<a asp-page="/Index" class="btn btn-secondary">На главную</a>
+<ul id="results" class="list-group mt-3"></ul>
+
+<!-- Модалка выбора дальнейшего действия -->
+<div class="modal fade" id="actionModal" tabindex="-1" aria-labelledby="actionLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content p-3">
+            <div class="modal-header">
+                <h5 id="actionLabel" class="modal-title">Что вы хотите сделать?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Клиент выбран, что дальше?</p>
+            </div>
+            <div class="modal-footer">
+                <a id="btnAddCar" class="btn btn-primary">Добавить автомобиль</a>
+                <a id="btnDeRegCar" class="btn btn-warning">Снять автомобиль с учёта</a>
+                <a id="btnDeRegCust" class="btn btn-danger">Снять клиента с учёта</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/jquery/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let selectedCustomerId = null;
+
+        document.addEventListener('DOMContentLoaded', function () {
+          const input   = document.getElementById('phoneInput');
+          const results = document.getElementById('results');
+
+          input.addEventListener('input', () => {
+            const q = input.value.trim();
+            if (q.length >= 1) searchCustomers(q);
+            else results.innerHTML = '';
+          });
+        });
+
+        async function searchCustomers(query) {
+          const resp = await fetch(`/CustomerWizard/SearchCustomer?handler=SearchCustomerAjax&phoneQuery=${encodeURIComponent(query)}`);
+          const data = await resp.json();
+          const results = document.getElementById('results');
+          results.innerHTML = '';
+
+          if (!Array.isArray(data) || data.length === 0) {
+            results.innerHTML = `
+              <li class="list-group-item">Ничего не найдено</li>
+              <li class="list-group-item text-center">
+                <a href="/CustomerWizard/CreateCustomer" class="btn btn-primary">Создать нового клиента</a>
+              </li>`;
+            return;
+          }
+
+          data.forEach(c => {
+            const li = document.createElement('li');
+            li.className = "list-group-item list-group-item-action";
+            li.style.cursor = "pointer";
+            li.innerHTML = `
+              <strong>Имя:</strong> ${c.firstName}<br>
+              <strong>Фамилия:</strong> ${c.lastName}<br>
+              <strong>Телефон:</strong> ${c.phoneNumber}<br>
+              <strong>Email:</strong> ${c.email}
+            `;
+            li.addEventListener('click', () => selectCustomer(c.id));
+            results.appendChild(li);
+          });
+        }
+
+        async function selectCustomer(id) {
+          const resp = await fetch(`/CustomerWizard/SearchCustomer?handler=SelectCustomer`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `customerId=${id}`
+          });
+          if (!resp.ok) {
+            return alert("Не удалось выбрать клиента");
+          }
+          // записали в сессию — теперь покажем модалку
+          selectedCustomerId = id;
+
+          // Настроим кнопки модалки
+          document.getElementById('btnAddCar').   href = `/CarWizard/CreateCar?customerId=${id}`;
+          document.getElementById('btnDeRegCar'). href = `/CarWizard/DeRegisterCar`; // возьмёт id из сессии
+          document.getElementById('btnDeRegCust').href = `/CustomerWizard/DeRegisterCustomer?customerId=${id}`;
+
+          new bootstrap.Modal(document.getElementById('actionModal')).show();
+        }
+    </script>
+}

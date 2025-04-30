@@ -9,9 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "STO.Infrastructure", "STO.I
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "STO.Web", "STO.Web\STO.Web.csproj", "{4133F32A-18CA-42CF-8E57-87AD41D871BD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "STO.Services", "STO.Services\STO.Services.csproj", "{2E1E9451-9BBC-4A30-A3FB-5D1B082B248C}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "STO.DTO", "STO.DTO\STO.DTO.csproj", "{18548946-8CF9-4AA9-885B-F59A9C9DFC50}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "STO.Service", "STO.Services\STO.Service.csproj", "{2E1E9451-9BBC-4A30-A3FB-5D1B082B248C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -71,18 +69,6 @@ Global
 		{2E1E9451-9BBC-4A30-A3FB-5D1B082B248C}.Release|x64.Build.0 = Release|Any CPU
 		{2E1E9451-9BBC-4A30-A3FB-5D1B082B248C}.Release|x86.ActiveCfg = Release|Any CPU
 		{2E1E9451-9BBC-4A30-A3FB-5D1B082B248C}.Release|x86.Build.0 = Release|Any CPU
-		{18548946-8CF9-4AA9-885B-F59A9C9DFC50}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{18548946-8CF9-4AA9-885B-F59A9C9DFC50}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{18548946-8CF9-4AA9-885B-F59A9C9DFC50}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{18548946-8CF9-4AA9-885B-F59A9C9DFC50}.Debug|x64.Build.0 = Debug|Any CPU
-		{18548946-8CF9-4AA9-885B-F59A9C9DFC50}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{18548946-8CF9-4AA9-885B-F59A9C9DFC50}.Debug|x86.Build.0 = Debug|Any CPU
-		{18548946-8CF9-4AA9-885B-F59A9C9DFC50}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{18548946-8CF9-4AA9-885B-F59A9C9DFC50}.Release|Any CPU.Build.0 = Release|Any CPU
-		{18548946-8CF9-4AA9-885B-F59A9C9DFC50}.Release|x64.ActiveCfg = Release|Any CPU
-		{18548946-8CF9-4AA9-885B-F59A9C9DFC50}.Release|x64.Build.0 = Release|Any CPU
-		{18548946-8CF9-4AA9-885B-F59A9C9DFC50}.Release|x86.ActiveCfg = Release|Any CPU
-		{18548946-8CF9-4AA9-885B-F59A9C9DFC50}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,139 @@
+﻿@page "/InstrumentWizard/FinancialReport"
+@model STO.Web.Pages.InstrumentWizard.FinancialReportModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+@{
+    ViewData["Title"] = "Финансовый отчёт";
+}
+
+<div class="container my-4">
+    <h2>Финансовый отчёт</h2>
+
+    <form method="post" class="row g-3 align-items-end mb-4">
+        <div class="col-md-3">
+            <label asp-for="StartDate" class="form-label">Начальная дата</label>
+            <input asp-for="StartDate" class="form-control" type="date" />
+            <span asp-validation-for="StartDate" class="text-danger"></span>
+        </div>
+        <div class="col-md-3">
+            <label asp-for="EndDate" class="form-label">Конечная дата</label>
+            <input asp-for="EndDate" class="form-control" type="date" />
+            <span asp-validation-for="EndDate" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <button type="submit" class="btn btn-primary">Предоставить отчёт</button>
+            <a asp-page="/Index" class="btn btn-secondary ms-2">На главную</a>
+        </div>
+    </form>
+
+    @if (Model.Report != null && Model.Report.Any())
+    {
+        // считаем общую выручку за период
+        decimal totalRevenue = Model.Report?.Sum(r => r.FullOrderPrice) ?? 0m;
+
+        <div class="mb-4">
+            <h4>Общая выручка за период: <span class="fw-bold">@totalRevenue.ToString("F2") ₽</span></h4>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered text-nowrap">
+                <thead class="table-light">
+                    <tr>
+                        <!-- Order-level -->
+                        <th>Order ID</th>
+                        <th>Дата заказа</th>
+                        <th>Сумма заказа, ₽</th>
+
+                        <th>Customer ID</th>
+                        <th>Клиент</th>
+                        <th>Телефон</th>
+                        <th>Email</th>
+
+                        <th>Car ID</th>
+                        <th>Автомобиль</th>
+
+                        <th>Service ID</th>
+                        <th>Услуга</th>
+                        <th>Цена услуги, ₽</th>
+
+                        <!-- Part-level -->
+                        <th>Part ID</th>
+                        <th>Деталь</th>
+                        <th>Цена детали, ₽</th>
+                        <th>Кол-во</th>
+                        <th>Сумма детали, ₽</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Report!)
+                    {
+                        if (row.OrderedParts != null && row.OrderedParts.Any())
+                        {
+                            foreach (var p in row.OrderedParts)
+                            {
+                                <tr>
+                                    <!-- order -->
+                                    <td>@row.OrderId</td>
+                                    <td>@row.OrderDateTime.ToString("yyyy-MM-dd HH:mm")</td>
+                                    <td>@row.FullOrderPrice</td>
+
+                                    <!-- customer -->
+                                    <td>@row.CustomerId</td>
+                                    <td>@($"{row.CustomerFirstName} {row.CustomerLastName}")</td>
+                                    <td>@row.PhoneNumber</td>
+                                    <td>@row.Email</td>
+
+                                    <!-- car -->
+                                    <td>@row.Car.Id</td>
+                                    <td>@($"{row.Car.BrandName} {row.Car.ModelName}, {row.Car.Year}")</td>
+
+                                    <!-- service -->
+                                    <td>@row.ServiceId</td>
+                                    <td>@row.ServiceName</td>
+                                    <td>@row.ServicePrice</td>
+
+                                    <!-- part -->
+                                    <td>@p.PartId</td>
+                                    <td>@p.PartName @(p.IsNew ? "(Нов.)" : "(БУ)")</td>
+                                    <td>@p.PartPrice</td>
+                                    <td>@p.Quantity</td>
+                                    <td>@p.PartSumPrice</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <!-- нет деталей: одна строка с пустыми колонками part -->
+                            <tr>
+                                <td>@row.OrderId</td>
+                                <td>@row.OrderDateTime.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>@row.FullOrderPrice</td>
+
+                                <td>@row.CustomerId</td>
+                                <td>@($"{row.CustomerFirstName} {row.CustomerLastName}")</td>
+                                <td>@row.PhoneNumber</td>
+                                <td>@row.Email</td>
+
+                                <td>@row.Car.Id</td>
+                                <td>@($"{row.Car.BrandName} {row.Car.ModelName}, {row.Car.Year}")</td>
+
+                                <td>@row.ServiceId</td>
+                                <td>@row.ServiceName</td>
+                                <td>@row.ServicePrice</td>
+
+                                <td colspan="5" class="text-center text-muted">Нет деталей</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else if (Model.Report != null)
+    {
+        <div class="alert alert-info">За указанный период записей не найдено.</div>
+    }
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

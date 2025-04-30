@@ -4,7 +4,7 @@ using STO.Infrastructure.Data;
 using STO.Core.Models;
 
 namespace STO.Web.Controllers;
-
+/*
 [Route("api/[controller]")]
 [ApiController]
 public class OrderPartsController : ControllerBase
@@ -50,4 +50,4 @@ public class OrderPartsController : ControllerBase
         return NoContent();
     }
 }
-
+*/

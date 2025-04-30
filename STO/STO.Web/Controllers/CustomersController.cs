@@ -1,65 +1,50 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using STO.Infrastructure.Data;
-using STO.Core.Models;
+using STO.Service.Interfaces;
+using STO.Service.Requests.Customer;
+using STO.Service.Responses.Customer;
 
 namespace STO.Web.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class CustomersController(AppDbContext Context) : ControllerBase
+public class CustomersController(ICustomerService customerService) : ControllerBase
 {
-    private readonly AppDbContext context = Context;//изменить везде context
-
+    private readonly ICustomerService _customerService = customerService; //изменить везде context
+    
     // ✅ Получить всех клиентов (GET api/customers)
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Customer>>> GetCustomers()
+    public async Task<ActionResult<IEnumerable<ResponseCustomerDetailed>>> GetCustomers()
     {
-        return await _context.Customers.Where(c => !c.IsDeleted).ToListAsync();
+        var customers = await _customerService.GetAllCustomersAsync();
+        return Ok(customers);
     }
-
+    
     // ✅ Получить клиента по ID (GET api/customers/1)
     [HttpGet("{id}")]
-    public async Task<ActionResult<Customer>> GetCustomer(int id)
+    public async Task<ActionResult<ResponseCustomerDetailed>> GetCustomer(int id)
     {
-        var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Id == id);
+        var customer = await _customerService.GetCustomerByIdAsync(id);
         if (customer == null) return NotFound();
-        return customer;
+        return Ok(customer);
     }
-
+    
     // ✅ Добавить нового клиента (POST api/customers)
     [HttpPost]
-    public async Task<ActionResult<Customer>> PostCustomer(Customer customer)
+    public async Task<ActionResult<ResponseCustomerDetailed>> PostCustomer([FromBody] RequestCustomerCreate request)
     {
-        _context.Customers.Add(customer);
-        await _context.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetCustomer), new { id = customer.Id }, customer);
+        var response = await _customerService.AddCustomerAsync(request);
+        if (response.Id == 0) return StatusCode(500);
+        if (!ModelState.IsValid) return BadRequest();
+        return Ok(response);
     }
 
+    /*
     // ✅ Обновить данные клиента (PUT api/customer/1)
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutCustomer(int id, Customer customer)
+    public async Task<IActionResult> PutCustomer(int id, RequestCustomerCreate customer)
     {
-        if (id != customer.Id) return BadRequest();
-        _context.Entry(customer).State = EntityState.Modified;
-        await _context.SaveChangesAsync();
-        return NoContent();
-    }
 
+    }
+    */
     // ✅ Удалить клиента (DELETE api/customer/1)
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteCustomer(int id)
-    {
-        var customer = await _context.Customers.FindAsync(id);
-        if (customer == null) return NotFound();
-        customer.IsDeleted = true;
-
-        var cars = await _context.Cars.Where(car => car.CustomerId == id).ToListAsync();
-        foreach(var car in cars){
-            car.IsDeleted = true;
-        }
-
-        await _context.SaveChangesAsync();
-        return NoContent();
-    }
 }

@@ -1,0 +1,144 @@
+﻿@page "/OrderWizard/SearchService"
+@model STO.Web.Pages.OrderWizard.SearchServiceModel
+@{
+    ViewData["Title"] = "Выбор услуги";
+}
+
+<div class="container">
+    <div class="mb-4">
+        <a asp-page="/OrderWizard/SearchCar" class="btn btn-secondary">← Назад к выбору машины</a>
+    </div>
+
+    <h2>Поиск услуги</h2>
+
+    <div class="mb-3">
+        <input type="text" id="serviceInput" class="form-control" placeholder="Введите название услуги" />
+    </div>
+
+    <a asp-page="/Index" class="btn btn-secondary">На главную</a>
+
+    <ul id="serviceResults" class="list-group mt-3"></ul>
+
+</div>
+
+<div class="modal fade" id="speedoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Введите пробег автомобиля</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input id="speedoInput" type="number" class="form-control" placeholder="Пробег, км" min="1" />
+                <div class="text-danger mt-2" id="speedoError" style="display:none;">Пожалуйста, введите корректный пробег.</div>
+            </div>
+            <div class="modal-footer">
+                <button id="btnSaveSpeedo" type="button" class="btn btn-primary">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            const needSpeedo = @Model.NeedSpeedo.ToString().ToLower(); // true/false в JS
+
+            if (needSpeedo) {
+                // Если надо, открываем модалку
+                const speedoModal = new bootstrap.Modal(document.getElementById('speedoModal'));
+                document.getElementById('speedoError').style.display = 'none';
+                document.getElementById('speedoInput').value = '';
+                speedoModal.show();
+
+                document.getElementById('btnSaveSpeedo').addEventListener('click', async () => {
+                    const val = parseInt(document.getElementById('speedoInput').value);
+                    if (!val || val <= 0) {
+                        document.getElementById('speedoError').style.display = 'block';
+                        return;
+                    }
+
+                    const response = await fetch(`/OrderWizard/SearchService?handler=SetSpeedo`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `speedometer=${val}`
+                    });
+                    if (response.ok) {
+                        speedoModal.hide();
+                    } else {
+                        alert('Не удалось сохранить пробег.');
+                    }
+                });
+            }
+
+            const input = document.getElementById('serviceInput');
+            const results = document.getElementById('serviceResults');
+
+            input.addEventListener('input', async function () {
+                const query = input.value;
+                if (query.length >= 1) {
+                    searchServices(query);
+                } else {
+                    results.innerHTML = '';
+                }
+            });
+        });
+
+        async function searchServices(query) {
+            console.log("Вызываем searchServices с query:", query);
+            try {
+                const response = await fetch(`/OrderWizard/SearchService?handler=Search&nameQuery=${encodeURIComponent(query)}`);
+                if (!response.ok) {
+                    console.error("Ошибка запроса:", response.statusText);
+                    return;
+                }
+
+                const data = await response.json();
+                const results = document.getElementById('serviceResults');
+                results.innerHTML = '';
+
+                if (data.length === 0) {
+                    results.innerHTML = `
+                        <li class="list-group-item">Услуги не найдены.</li>`;
+                    return;
+                }
+
+                data.forEach(service => {
+                    const li = document.createElement('li');
+                    li.className = "list-group-item list-group-item-action";
+                    li.style.cursor = "pointer";
+                    let html = `
+                        <strong>Название:</strong> ${capitalize(service.name)}<br>
+                        <strong>Стоимость:</strong> ${service.price}₽
+                    `;
+                    if (service.nextVisit) {
+                        const [days, hours, minutes] = service.nextVisit.split(':').map(Number);
+                        html += `<br><strong>Дней до повторного обслуживания: </strong> ${days}`;
+                    }
+                    li.innerHTML = html;
+                    li.onclick = () => selectService(service.id);
+                    results.appendChild(li);
+                });
+            } catch (error) {
+                console.error("Ошибка в поиске услуг:", error);
+            }
+        }
+
+        async function selectService(id) {
+            const response = await fetch(`/OrderWizard/SearchService?handler=SelectService`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: `serviceId=${id}`
+            });
+
+            if (response.ok) {
+                window.location.href = '/OrderWizard/SearchParts'; // Следующий шаг
+            } else {
+                alert("Ошибка выбора услуги.");
+            }
+        }
+    </script>
+}

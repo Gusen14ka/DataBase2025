@@ -1,0 +1,133 @@
+﻿@page "/OrderWizard/SearchCar"
+@model STO.Web.Pages.OrderWizard.SearchCarModel
+@{
+    ViewData["Title"] = "Поиск машины";
+}
+
+<div class="container">
+	<!-- Кнопка назад -->
+	<div class="mb-4">
+		<a asp-page="/OrderWizard/SearchCustomer" class="btn btn-secondary">
+			← Назад к поиску клиента
+		</a>
+	</div>
+
+	<h2>Поиск автомобиля по VIN номеру</h2>
+
+	<div class="mb-3">
+		<input type="text" id="vinInput" placeholder="Введите VIN" class="form-control" />
+	</div>
+
+    <a asp-page="/Index" class="btn btn-secondary">На главную</a>
+
+	<ul id="carResults" class="list-group mt-3"></ul>
+
+	<div class="mt-3">
+		<a class="btn btn-outline-primary" href="/CarWizard/CreateCar?customerId=@Model.CustomerId">Добавить машину</a>
+	</div>
+</div>
+
+
+<div class="modal fade" id="speedoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Введите пробег автомобиля</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input id="speedoInput" type="number" class="form-control" placeholder="Пробег, км" min="1" />
+                <div class="text-danger mt-2" id="speedoError" style="display:none;">Пожалуйста, введите корректный пробег.</div>
+            </div>
+            <div class="modal-footer">
+                <button id="btnSaveSpeedo" type="button" class="btn btn-primary">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const input = document.getElementById('vinInput');
+            const results = document.getElementById('carResults');
+
+            input.addEventListener('input', async function () {
+                const query = input.value;
+                if (query.length >= 1) {
+                    searchCars(query);
+                } else {
+                    results.innerHTML = '';
+                }
+            });
+        });
+
+        async function searchCars(query) {
+            try {
+                const response = await fetch(`/OrderWizard/SearchCar?handler=Search&vin=${encodeURIComponent(query)}`);
+                if (!response.ok) {
+                    console.error("Ошибка запроса:", response.statusText);
+                    return;
+                }
+
+                const data = await response.json();
+                const results = document.getElementById('carResults');
+                results.innerHTML = '';
+
+                if (data.length === 0) {
+                    results.innerHTML = "<li class='list-group-item'>Машины не найдены</li>";
+                    return;
+                }
+
+                data.forEach(car => {
+                    const li = document.createElement('li');
+                    li.className = "list-group-item list-group-item-action";
+                    li.style.cursor = "pointer";
+                    li.innerHTML = `
+                        <strong>VIN:</strong> ${car.vin}<br>
+                        <strong>Год:</strong> ${car.year}<br>
+                        <strong>Марка:</strong> ${car.brandName}<br>
+                        <strong>Модель:</strong> ${car.modelName}
+                    `;
+                    li.onclick = () => selectCar(car.id);
+                    results.appendChild(li);
+                });
+            } catch (error) {
+                console.error("Ошибка в поиске автомобилей:", error);
+            }
+        }
+
+                let pendingCarId = null;
+
+        async function selectCar(id) {
+          // Сохраняем выбранный carId временно
+          pendingCarId = id;
+          // Открываем модалку ввода пробега
+          const speedoModal = new bootstrap.Modal(document.getElementById('speedoModal'));
+          document.getElementById('speedoError').style.display = 'none';
+          document.getElementById('speedoInput').value = '';
+          speedoModal.show();
+        }
+
+        // Когда пользователь нажал "Сохранить" в модалке
+        document.getElementById('btnSaveSpeedo').addEventListener('click', async () => {
+          const val = parseInt(document.getElementById('speedoInput').value);
+          if (!val || val <= 0) {
+            document.getElementById('speedoError').style.display = 'block';
+            return;
+          }
+          // Сохраняем carId и speedometer в сессии на сервере
+          const response = await fetch(`/OrderWizard/SearchCar?handler=SetSpeedo`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `carId=${pendingCarId}&speedometer=${val}`
+          });
+          if (response.ok) {
+            // После сохранения перенаправляем на выбор услуги
+            window.location.href = '/OrderWizard/SearchService';
+          } else {
+            alert('Не удалось сохранить пробег.');
+          }
+        });
+    </script>
+}

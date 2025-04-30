@@ -1,0 +1,169 @@
+﻿@page "/CarWizard/DeRegisterCar"
+@model STO.Web.Pages.CarWizard.DeRegisterCarModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+@{
+    ViewData["Title"] = "Снятие автомобиля с учёта";
+}
+
+<div class="container">
+    <div class="mb-4">
+        <a asp-page="/CustomerWizard/SearchCustomer" class="btn btn-secondary">← Вернуться к выбору пользователя</a>
+    </div>
+
+    <h2>Поиск автомобиля для снятия с учёта</h2>
+    <div class="mb-3">
+        <input type="text" id="vinInput" class="form-control" placeholder="Введите VIN" />
+    </div>
+    <a asp-page="/Index" class="btn btn-secondary">На главную</a>
+    <ul id="carResults" class="list-group mt-3"></ul>
+</div>
+
+<!-- confirm modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content p-3">
+            <div class="modal-header">
+                <h5 class="modal-title">Подтвердите снятие с учёта</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="confirmBody"></div>
+            <div class="modal-footer">
+                <button id="btnConfirm" class="btn btn-danger">Снять с учёта</button>
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Назад</button>
+                <a asp-page="/" class="btn btn-outline-primary">На главную</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- done modal -->
+<div class="modal fade" id="doneModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content p-3">
+            <div class="modal-header">
+                <h5 class="modal-title">Готово</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">Автомобиль успешно снят с учёта.</div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Назад</button>
+                <a asp-page="/" class="btn btn-primary">На главную</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/jquery/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // захватим нужные элементы
+        const vinInput       = document.getElementById('vinInput');
+        const resultsList    = document.getElementById('carResults');
+        const confirmModalEl = document.getElementById('confirmModal');
+        const doneModalEl    = document.getElementById('doneModal');
+        const btnConfirm     = document.getElementById('btnConfirm');
+
+        let selectedCar = null;
+
+        // 1) Цепляем событие на ввод VIN
+        vinInput.addEventListener('input', onVinInput);
+
+        function onVinInput() {
+          const q = vinInput.value.trim();
+          if (q === '') {
+            clearResults();
+          } else {
+            searchCars(q);
+          }
+        }
+
+        // 2) AJAX-поиск
+        async function searchCars(vin) {
+          try {
+            const resp = await fetch(`/CarWizard/DeRegisterCar?handler=Search&vin=${encodeURIComponent(vin)}`);
+            const data = await resp.json();
+            const arr  = Array.isArray(data) ? data : (data ? [data] : []);
+            displayCars(arr);
+          } catch (err) {
+            console.error('search error', err);
+            clearResults();
+          }
+        }
+
+        function clearResults() {
+          resultsList.innerHTML = '';
+        }
+
+        // 3) Отрисовка списка
+        function displayCars(cars) {
+          clearResults();
+          if (cars.length === 0) {
+            resultsList.innerHTML = `<li class="list-group-item">Машины не найдены</li>`;
+            return;
+          }
+          cars.forEach(c => {
+            const li = renderCarItem(c);
+            resultsList.appendChild(li);
+          });
+        }
+
+        // 4) Собираем DOM-элемент <li>
+        function renderCarItem(c) {
+          const li = document.createElement('li');
+          li.className = 'list-group-item list-group-item-action';
+          li.style.cursor = 'pointer';
+          li.innerHTML = `
+            <strong>VIN:</strong> ${c.vin}<br>
+            <strong>Год:</strong> ${c.year}<br>
+            <strong>Марка:</strong> ${capitalize(c.brandName)}<br>
+            <strong>Модель:</strong> ${capitalize(c.modelName)}
+          `;
+          li.addEventListener('click', () => openConfirm(c));
+          return li;
+        }
+
+        // 5) Открываем модалку с деталями
+        function openConfirm(car) {
+          selectedCar = car;
+          const body = document.getElementById('confirmBody');
+          // подставляем из Razor-модели данные клиента
+          const first = '@Model.CustomerBrief?.FirstName';
+          const last  = '@Model.CustomerBrief?.LastName';
+          const phone = '@Model.CustomerBrief?.PhoneNumber';
+          body.innerHTML = `
+            <p><strong>Владелец:</strong> ${capitalize(first)} ${capitalize(last)}</p>
+            <p><strong>Телефон:</strong> ${phone}</p>
+            <hr>
+            <p><strong>VIN:</strong> ${car.vin}</p>
+            <p><strong>Год:</strong> ${car.year}</p>
+            <p><strong>Марка:</strong> ${capitalize(car.brandName)}</p>
+            <p><strong>Модель:</strong> ${capitalize(car.modelName)}</p>
+            <p>Вы уверены, что хотите снять с учёта этот автомобиль?</p>
+          `;
+          new bootstrap.Modal(confirmModalEl).show();
+        }
+
+        // 6) Обработка кнопки «Снять с учёта»
+        btnConfirm.addEventListener('click', async () => {
+          if (!selectedCar) return;
+          try {
+            const resp = await fetch(
+              `/CarWizard/DeRegisterCar?handler=Delete&carId=${selectedCar.id}`,
+              { method: 'POST' }
+            );
+            if (resp.ok) {
+              bootstrap.Modal.getInstance(confirmModalEl).hide();
+              new bootstrap.Modal(doneModalEl).show();
+            } else {
+              alert('Не удалось снять с учёта');
+            }
+          } catch (err) {
+            console.error('delete error', err);
+            alert('Ошибка сети');
+          }
+        });
+    </script>
+}

@@ -1,0 +1,162 @@
+﻿@page "/CarWizard/CreateCar"
+@model STO.Web.Pages.CarWizard.CreateCarModel
+@{
+    ViewData["Title"] = "Новая машина";
+}
+
+<div class="container">
+    <h2>Новая машина</h2>
+
+    @if (!Model.CustomerId.HasValue)
+    {
+        <div class="alert alert-danger">
+            Такого клиента не существует. <a asp-page="/CustomerWizard/CreateCustomer">Создать клиента</a>
+        </div>
+        <a asp-page="/Index" class="btn btn-secondary">На главную</a>
+    }
+    else
+    {
+        <form method="post" class="row g-3" id="formCreateCar">
+            <input type="hidden" asp-for="Input.CustomerId" />
+            <input type="hidden" asp-for="Input.ModelId" id="hiddenModelId" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="col-md-6 position-relative">
+                <label class="form-label">Модель</label>
+
+                <!-- контейнер для выбранного тега -->
+                <div id="selectedModel" class="mb-2"></div>
+
+                <!-- само поле поиска -->
+                <input type="text"
+                       id="modelSearch"
+                       class="form-control"
+                       autocomplete="off"
+                       placeholder="Начните вводить модель…" />
+
+                <!-- выпадающий список подсказок -->
+                <ul id="modelSuggestions"
+                    class="list-group position-absolute w-100"
+                    style="z-index:1000; display:none; max-height:200px; overflow-y:auto;">
+                </ul>
+            </div>
+
+            <!-- остальные поля -->
+            <div class="col-md-6">
+                <label asp-for="Input.Vin" class="form-label">VIN</label>
+                <input asp-for="Input.Vin" class="form-control" />
+                <span asp-validation-for="Input.Vin" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Input.Year" class="form-label">Год</label>
+                <input asp-for="Input.Year" type="number" min="0" class="form-control" />
+                <span asp-validation-for="Input.Year" class="text-danger"></span>
+            </div>
+
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary" id="submitBtn" disabled>Создать машину</button>
+                <a asp-page="/Index" class="btn btn-secondary">На главую</a>
+            </div>
+        </form>
+    }
+</div>
+
+@if (Model.ShowSuccess)
+{
+    <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content p-3">
+                <div class="modal-header">
+                    <h5 id="successLabel" class="modal-title">Машина успешно добавлена</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    Что дальше?
+                </div>
+                <div class="modal-footer">
+                    <!-- На главную -->
+                    <a class="btn btn-outline-primary" href="/">На главную</a>
+                    <!-- К заказу -->
+                    <a class="btn btn-primary"
+                       href="/OrderWizard/SearchService">
+                        К заказу
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="~/lib/jquery/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/helpers.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          var inp    = document.getElementById('modelSearch'),
+              list   = document.getElementById('modelSuggestions'),
+              hidden = document.getElementById('hiddenModelId'),
+              sel    = document.getElementById('selectedModel'),
+              submit = document.getElementById('submitBtn'),
+              timer  = null;
+
+          function renderTag(item) {
+            sel.innerHTML = '';
+            var tag = document.createElement('span');
+            tag.className = 'badge bg-primary me-2 d-inline-flex align-items-center';
+            tag.textContent = capitalize(item.brand) + ' ' + capitalize(item.name);
+            var x = document.createElement('button');
+            x.type = 'button'; x.className = 'btn-close btn-close-white btn-sm ms-2';
+            x.addEventListener('click', function(){ hidden.value=''; sel.innerHTML=''; submit.disabled=true; inp.disabled=false; inp.value=''; });
+            tag.appendChild(x);
+            sel.appendChild(tag);
+          }
+
+          inp.addEventListener('input', function() {
+            clearTimeout(timer);
+            var q = inp.value.trim();
+            if (!q) { list.style.display='none'; return; }
+            timer = setTimeout(function() {
+              fetch('?handler=SearchModels&nameQuery=' + encodeURIComponent(q))
+                .then(r => r.json())
+                .then(arr => {
+                  list.innerHTML = '';
+                  if (!Array.isArray(arr) || arr.length === 0) {
+                    list.style.display='none'; return;
+                  }
+                  arr.forEach(function(m) {
+                    var li = document.createElement('li');
+                    li.className = 'list-group-item list-group-item-action';
+                    li.style.cursor = 'pointer';
+                    li.innerHTML = ''
+                      + '<div><strong>Модель:</strong> ' + capitalize(m.name) + '</div>'
+                      + '<div><strong>Марка:</strong> ' + capitalize(m.brand) + '</div>';
+                    li.dataset.id = m.id;
+                    li.addEventListener('click', function() {
+                      hidden.value = m.id;
+                      renderTag(m);
+                      list.style.display = 'none';
+                      submit.disabled = false;
+                      inp.disabled = true;
+                    });
+                    list.appendChild(li);
+                  });
+                  list.style.display = 'block';
+                });
+            }, 300);
+          });
+
+          document.addEventListener('click', function(e) {
+            if (!list.contains(e.target) && e.target !== inp) list.style.display='none';
+          });
+            @if (Model.ShowSuccess)
+            {
+                <text>
+                    new bootstrap.Modal(document.getElementById('successModal')).show();
+                </text>
+            }
+        });
+    </script>
+}
+

@@ -1,0 +1,89 @@
+﻿@page "/OrderWizard/SearchCustomer"
+@model STO.Web.Pages.OrderWizard.SearchCustomerModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    ViewData["Title"] = "Поиск клиента";
+}
+
+<h2>Поиск клиента по номеру телефона</h2>
+
+<div class="mb-3">
+    <input id="phoneInput" type="text" class="form-control" placeholder="Введите номер телефона" />
+</div>
+
+<a asp-page="/Index" class="btn btn-secondary">На главную</a>
+
+<ul id="results" class="list-group mt-3"></ul>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const input = document.getElementById('phoneInput');
+            input.addEventListener('input', function () {
+                const query = input.value;
+                if (query.length >= 1) {
+                    searchCustomers(query);
+                } else {
+                    document.getElementById('results').innerHTML = '';
+                }
+            });
+        });
+
+        async function searchCustomers(query) {
+            try {
+                const response = await fetch(`/OrderWizard/SearchCustomer?handler=SearchCustomerAjax&phoneQuery=${encodeURIComponent(query)}`);
+                if (!response.ok) {
+                    console.error("Ошибка запроса:", response.statusText);
+                    return;
+                }
+
+                const data = await response.json();
+                const results = document.getElementById('results');
+                results.innerHTML = '';
+
+                if (data.length === 0) {
+                    // Выводим сообщение "Ничего не найдено" и кнопку "Добавить пользователя"
+                    results.innerHTML = `
+                        <li class="list-group-item">Ничего не найдено.</li>
+                        <li class="list-group-item text-center">
+                            <a href="/CustomerWizard/CreateCustomer" class="btn btn-primary">Добавить пользователя</a>
+                        </li>
+                    `;
+                    return;
+                }
+
+                data.forEach(customer => {
+                    const li = document.createElement('li');
+                    li.className = "list-group-item list-group-item-action";
+                    li.style.cursor = "pointer";
+                    li.innerHTML = `
+                        <strong>Имя:</strong> ${customer.firstName}<br>
+                        <strong>Фамилия:</strong> ${customer.lastName}<br>
+                        <strong>Телефон:</strong> ${customer.phoneNumber}<br>
+                        <strong>Email:</strong> ${customer.email}
+                    `;
+                    li.onclick = () => selectCustomer(customer.id);
+                    results.appendChild(li);
+                });
+            } catch (error) {
+                console.error("Ошибка в поиске клиентов:", error);
+            }
+        }
+
+        async function selectCustomer(id) {
+            const response = await fetch(`/OrderWizard/SearchCustomer?handler=SelectCustomer`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: `customerId=${id}`
+            });
+
+            if (response.ok) {
+                window.location.href = '/OrderWizard/SearchCar'; // Перенаправление к следующему шагу
+            } else {
+                alert("Ошибка выбора клиента.");
+            }
+        }
+    </script>
+}

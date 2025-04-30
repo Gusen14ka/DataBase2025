@@ -1,18 +1,19 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using STO.Services;
-using STO.DTO.Car;
+using STO.Service.Interfaces;
+using STO.Service.Requests.Car;
+using STO.Service.Responses.Car;
 
 namespace STO.Web.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class CarsController(CarService carService) : ControllerBase
+public class CarsController(ICarService carService) : ControllerBase
 {
-    private readonly CarService _carService = carService;
+    private readonly ICarService _carService = carService;
 
     // ✅ Получить все машины (GET api/cars)
     [HttpGet]
-    public async Task<ActionResult<List<CarDetailedDto>>> GetCars()
+    public async Task<ActionResult<List<ResponseCarDetailed>>> GetCars()
     {
         var cars = await _carService.GetAllCarsAsync();
         return Ok(cars);
@@ -20,7 +21,7 @@ public class CarsController(CarService carService) : ControllerBase
     
     // ✅ Получить машину по ID (GET api/cars/1)
     [HttpGet("{id}")]
-    public async Task<ActionResult<CarDetailedDto>> GetCar(int id)
+    public async Task<ActionResult<ResponseCarDetailed>> GetCar( int id)
     {
         var car = await _carService.GetCarByIdAsync(id);
         if (car == null) return NotFound();
@@ -29,10 +30,12 @@ public class CarsController(CarService carService) : ControllerBase
     
     // ✅ Добавить новую машину (POST api/cars)
     [HttpPost]
-    public async Task<ActionResult<CarMinimalisticDto>> PostCar([FromBody] CarCreateDto сarCreateDto)
+    public async Task<ActionResult<ResponseCarBrief>> PostCar([FromBody] RequestCarCreate request)
     {
-        var car = await _carService.AddCarAsync(сarCreateDto);
-        return CreatedAtAction(nameof(GetCar), new { id = car.Id }, car);
+        if (!ModelState.IsValid) return BadRequest();
+        var response = await _carService.AddCarAsync(request);
+        if (response.Id == 0) return StatusCode(500);
+        return Ok(response);
     }
     /*
     // ✅ Обновить данные машины (PUT api/car/1)
@@ -44,16 +47,7 @@ public class CarsController(CarService carService) : ControllerBase
         await _context.SaveChangesAsync();
         return NoContent();
     }
-
-    // ✅ Удалить машину (DELETE api/car/1)
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteCar(int id)
-    {
-        var car = await _context.Cars.FindAsync(id);
-        if (car == null) return NotFound();
-        car.IsDeleted = true;
-        await _context.SaveChangesAsync();
-        return NoContent();
-    }
     */
+    // ✅ Удалить машину (DELETE api/car/1)
+    
 }

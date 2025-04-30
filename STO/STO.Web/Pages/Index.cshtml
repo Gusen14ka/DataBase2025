@@ -1,0 +1,27 @@
+﻿@page
+@model STO.Web.Pages.IndexModel
+@{
+    ViewData["Title"] = "Главная";
+}
+
+<div class="text-center my-5">
+    <h1>STO Web Application</h1>
+    <p class="lead">Ваше мини-STO в облаке</p>
+</div>
+
+<section>
+    <h2>Навигация</h2>
+    <div class="d-flex flex-wrap gap-2">
+        @foreach (var item in Model.NavItems)
+        {
+            <a asp-page="@item.Page" class="btn btn-outline-primary">
+                @item.Title
+            </a>
+        }
+    </div>
+</section>
+
+<footer class="text-center mt-5 text-muted">
+    &copy; @DateTime.Now.Year — разработано Гусевым Глебом
+    <a href="https://github.com/your-repository-placeholder" target="_blank">GitHub проекта</a>
+</footer>

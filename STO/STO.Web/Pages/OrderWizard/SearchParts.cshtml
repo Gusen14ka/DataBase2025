@@ -1,0 +1,261 @@
+﻿@page "/OrderWizard/SearchParts"
+@model STO.Web.Pages.OrderWizard.SearchPartsModel
+@using System.Globalization
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Выбор деталей";
+}
+
+<div class="container">
+	<!-- Кнопка "Назад" для возврата к выбору услуги -->
+	<div class="mb-4">
+		<a asp-page="/OrderWizard/SearchService" class="btn btn-secondary">← Назад к выбору услуги</a>
+	</div>
+
+	<!-- Блок с рассчитанной стоимостью заказа -->
+	<div id="totalCost" class="mb-3 fw-bold" data-service-cost="@Model.ServiceCost">
+		Предположительная стоимость: <span id="costValue">@Model.ServiceCost</span>₽
+	</div>
+
+	<h2>Выбор деталей</h2>
+
+	<!-- Фильтры поиска (компактно, в строке) -->
+	<div class="row mb-3">
+		<div class="col-md-4">
+			<input type="text" id="partNameInput" class="form-control" placeholder="Название детали">
+		</div>
+		<div class="col-md-3">
+			<select id="isNewSelect" class="form-select">
+				<option value="">Все</option>
+				<option value="true">Новое</option>
+				<option value="false">Б/У</option>
+			</select>
+		</div>
+		<div class="col-md-3">
+			<input type="number" id="quantityInput" class="form-control" placeholder="Мин. кол-во">
+		</div>
+	</div>
+
+	<!-- Список найденных деталей -->
+	<ul id="partResults" class="list-group"></ul>
+
+    <!-- Кнопка открытия модального окна -->
+    <div class="mt-4">
+        <button id="btnReview" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#reviewModal">
+            Сформировать заказ
+        </button>
+        <a asp-page="/Index" class="btn btn-secondary">На главную</a>
+    </div>
+</div>
+
+
+<!-- Bootstrap‑модалка -->
+<div class="modal fade" id="reviewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Проверьте информацию</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <dl class="row">
+                    <dt class="col-sm-4">Клиент</dt>
+                    <dd class="col-sm-8" id="review-customer"></dd>
+
+                    <dt class="col-sm-4">Автомобиль</dt>
+                    <dd class="col-sm-8" id="review-car"></dd>
+
+                    <dt class="col-sm-4">Пробег</dt>
+                    <dd class="col-sm-8" id="review-speedometer"></dd>
+
+                    <dt class="col-sm-4">Услуга</dt>
+                    <dd class="col-sm-8" id="review-service"></dd>
+
+                    <dt class="col-sm-4">Детали</dt>
+                    <dd class="col-sm-8">
+                        <ul id="review-parts" class="list-unstyled mb-0"></ul>
+                    </dd>
+
+                    <dt class="col-sm-4">Итоговая цена</dt>
+                    <dd class="col-sm-8 fw-bold" id="review-total"></dd>
+                </dl>
+            </div>
+            <div class="modal-footer">
+                <button id="btnConfirmOrder" type="button" class="btn btn-success">
+                    Оформить заказ
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Назад
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+        // ← единожды
+        let selectedParts = [];
+
+        document.addEventListener('DOMContentLoaded', function () {
+          const nameInput     = document.getElementById('partNameInput');
+          const isNewSelect   = document.getElementById('isNewSelect');
+          const quantityInput = document.getElementById('quantityInput');
+
+          nameInput   .addEventListener('input',  searchParts);
+          isNewSelect .addEventListener('change', searchParts);
+          quantityInput.addEventListener('input', searchParts);
+
+          updateTotalCost();
+        });
+
+        // поиск + отрисовка списка
+        async function searchParts() {
+          const nameQuery   = document.getElementById('partNameInput').value.trim();
+          const isNewValue  = document.getElementById('isNewSelect').value;
+          const quantityVal = document.getElementById('quantityInput').value.trim();
+
+          if (!nameQuery) {
+            document.getElementById('partResults').innerHTML = '';
+            return;
+          }
+
+          let url = `/OrderWizard/SearchParts?handler=SearchParts&nameQuery=${encodeURIComponent(nameQuery)}`;
+          if (isNewValue)  url += `&isNew=${isNewValue}`;
+          if (quantityVal) url += `&quantity=${quantityVal}`;
+
+          const resp = await fetch(url);
+          const parts = resp.ok ? await resp.json() : [];
+          displayParts(parts);
+        }
+
+        function displayParts(parts) {
+          const results = document.getElementById('partResults');
+          results.innerHTML = parts.length
+            ? parts.map(p => renderPartItem(p)).join('')
+            : `<li class="list-group-item">Детали не найдены</li>`;
+          updateTotalCost();
+        }
+
+                function renderPartItem(p) {
+          const sel = selectedParts.find(x => x.partId === p.id);
+          if (sel) {
+            return `
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <strong>Название:</strong> ${capitalize(p.name)}<br>
+                  <strong>Цена:</strong> ${p.price}₽<br>
+                  <strong>Доступно:</strong> ${p.quantity}
+                </div>
+                <div>
+                  <div class="input-group" style="max-width:180px">
+                    <button class="btn btn-outline-secondary" onclick="decreaseQuantity(${p.id})">−</button>
+                    <input class="form-control text-center" value="${sel.quantity}" readonly>
+                    <button class="btn btn-outline-secondary" onclick="increaseQuantity(${p.id},${p.quantity},${p.price})">+</button>
+                    <button class="btn btn-outline-danger" onclick="removePart(${p.id})">×</button>
+                  </div>
+                </div>
+              </li>`;
+          } else {
+            const safeName = p.name.replace(/'/g, "\\'");
+            return `
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <strong>Название:</strong> ${capitalize(p.name)}<br>
+                  <strong>Цена:</strong> ${p.price}₽<br>
+                  <strong>Доступно:</strong> ${p.quantity}
+                </div>
+                <button class="btn btn-success" onclick="selectPart(${p.id},${p.quantity},${p.price}, '${safeName}')">
+                  Выбрать
+                </button>
+              </li>`;
+          }
+        }
+
+        function updateTotalCost() {
+          const svc = parseFloat(document.getElementById('totalCost').dataset.serviceCost) || 0;
+          const partsSum = selectedParts.reduce((s,x) => s + x.price * x.quantity, 0);
+          document.getElementById('costValue').textContent = (svc + partsSum).toFixed(2);
+        }
+
+        function selectPart(partId, available, price, name) {
+          selectedParts.push({ partId, quantity: 1, available, price, name });
+          updateTotalCost(); searchParts();
+        }
+        function increaseQuantity(partId, available, price) {
+          const x = selectedParts.find(p=>p.partId===partId);
+          if (x && x.quantity < available) { x.quantity++; updateTotalCost(); searchParts(); }
+        }
+        function decreaseQuantity(partId) {
+          const x = selectedParts.find(p=>p.partId===partId);
+          if (!x) return;
+          if (x.quantity === 1) removePart(partId);
+          else { x.quantity--; updateTotalCost(); searchParts(); }
+        }
+        function removePart(partId) {
+          selectedParts = selectedParts.filter(p=>p.partId!==partId);
+          updateTotalCost(); searchParts();
+        }
+
+        // модалка
+        const reviewModal = document.getElementById('reviewModal');
+              const reviewData = {
+          customer: @Html.Raw(JsonSerializer.Serialize(
+           $"{Model.Customer?.FirstName} {Model.Customer?.LastName}, 📞 {Model.Customer?.PhoneNumber}"
+        )),
+          car: @Html.Raw(JsonSerializer.Serialize(
+                // Добавляем BrandName перед ModelName
+                $"{Model.Car?.BrandName} {Model.Car?.ModelName}, VIN {Model.Car?.Vin}"
+            )),
+          service: {
+            name: @Html.Raw(JsonSerializer.Serialize(Model.Service?.Name)),
+            price: @Model.ServiceCost  // число, не строка
+          }
+        };
+
+        reviewModal.addEventListener('show.bs.modal', () => {
+          document.getElementById('review-customer').textContent = reviewData.customer;
+          document.getElementById('review-car')     .textContent = reviewData.car;
+          document.getElementById('review-speedometer').textContent = @Model.Speedometer;
+          document.getElementById('review-service') .textContent =
+            `${reviewData.service.name} — ${reviewData.service.price.toFixed(2)}₽`;
+
+          const ul = document.getElementById('review-parts');
+          ul.innerHTML = selectedParts.map(p =>
+            `<li>${capitalize(p.name)} × ${p.quantity} шт — ${(p.price*p.quantity).toFixed(2)}₽</li>`
+          ).join('');
+
+          const total = reviewData.service.price +
+            selectedParts.reduce((s,p)=>s + p.price*p.quantity, 0);
+          document.getElementById('review-total')
+            .textContent = total.toFixed(2) + '₽';
+        });
+
+        document.getElementById('btnConfirmOrder').addEventListener('click', async () => {
+          const payload = {
+            CustomerId: @Model.CustomerId,
+            CarId:      @Model.CarId,
+            ServiceId:  @Model.ServiceId,
+            Speedometer: @Model.Speedometer,
+            Parts: selectedParts.map(p=>({ PartId: p.partId, Quantity: p.quantity }))
+          };
+          const r = await fetch('?handler=CreateOrder', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+          });
+          const j = await r.json();
+          if (j.success) {
+            const body = reviewModal.querySelector('.modal-body');
+            body.innerHTML = `<p class="fs-5">Спасибо за заказ!</p>
+              <div class="d-flex justify-content-around mt-4">
+                <a class="btn btn-primary" href="/">На главную</a>
+                <a class="btn btn-secondary" href="/OrderWizard/SearchCar">← Выбрать авто</a>
+                <a class="btn btn-secondary" href="/OrderWizard/SearchService">← Выбрать услугу</a>
+              </div>`;
+            reviewModal.querySelector('.modal-footer').style.display = 'none';
+          } else alert('Ошибка при оформлении заказа');
+        });
+    </script>
+}
+
